@@ -1,145 +1,211 @@
-"""
-AUTHOR: Caetano Florian Roberti
-Date: 04 May 2019
-"""
 import update_db
 import query_db
 import calculate_returns
 import calculate_regression
 import pandas as pd
+import pdb
 
 
+"""
+AUTHOR: Caetano Florian Roberti
+Date: 04 May 2019
+
+    Main file of the CCAPM Regression program. It will import all the functions used in here from the respective
+    modules:
+    
+    update_db -> is used to create or update the database which contains the stock and consumption data
+    
+    query_db -> is used to query the data from the database
+    
+    calculate_returns -> is used to calculate returns from both stock and consumption
+    
+    calculate_regression -> is used to regress the stock returns against the consumption returns
+    
+    pandas -> is used to configure the DataFrame print at the end of the program
+    
+    It will first ask if the person wants to update the database.
+    
+    After, it will ask the user for which stocks he wants to estimate.
+    
+    Than, it will import the data from database e estimate the regression for all the stocks.
+    
+    After that, it will display the regression_df.
+    
+    The regression_df contains:
+    
+    - parameters coefficients, standard deviation and p values,
+    - r squared and adjusted r squared
+    - f statistic and its p value
+    - durbin watson test
+    
+    After, it will ask if the user want to export to a .csv.
+    
+    If is choose to do so, it will ask for the name of the file and than export both the selected stock and the
+    residues from the regression. 
+
+"""
+
+# Program config
 db_path = '/miniconda3/envs/ccapm_regression/Code/ccapm_regression/yahoo_financials_daily.db' # path to the Database
-has_to_update_bd = 1 # 1 - if is need to update de database before; 0 - if not
 price = 'adjclose' # can be 'adjclose' or 'close'
 filter_zero_volume = True # filter stock prices where volume = 0, it is advised to set True
 
+# welcoming
 
+print(""" \n
+    Welcome to CCAPM Regression \n""")
+
+# Checking if the user want to update the database
+answer_try_update = input('Do you need to update or create the database? Yes or No: ').upper()
+while not (answer_try_update[0].upper() == 'Y' or answer_try_update[0].upper() == 'N'):
+    answer_try_update = input('Enter Yes or No: ').upper()
+
+if answer_try_update[0].upper() == 'Y':
+    has_to_update_bd = 1
+else:
+    has_to_update_bd = 0
+
+# Updating the Database
 if has_to_update_bd == 1:
 
-    print('The database will be updated, it will take a moment.\n')
-    answer_terminate_update = input('Do you want to continue? Yes or No: ')
+    print('\nThe database will be updated, it will take a moment.\n')
+    answer_terminate_update = input('Do you want to cancel? Yes or No: ')
     while not (answer_terminate_update[0].upper() == 'Y' or
                answer_terminate_update[0].upper() == 'N'):
         answer_terminate_update = input('Enter Yes or No: ').upper()
 
-    if answer_terminate_update[0].upper() == 'Y':
-        print()
-        print("Program will be finalized")
-        print()
-        exit()
+    if answer_terminate_update[0].upper() == 'N':
 
-    try_update_db_consumption = update_db.update_db_consumption(db_path)
+        try_update_db_consumption = update_db.update_db_consumption(db_path)
 
-    if try_update_db_consumption == False:
-        print('It was not possible to update Consumption Database')
-        answear_update_error_consumption = input('Do you want to terminate? Yes or No: ').upper()
+        # if it was not able to update consumption database
+        if try_update_db_consumption == False:
+            print('It was not possible to update Consumption Database')
+            answer_update_error_consumption = input('Do you want to terminate? Yes or No: ').upper()
 
-        while not(answear_update_error_consumption[0].upper() == 'Y' or answear_update_error_consumption[0].upper() == 'N'):
-            answear_update_error_consumption = input('Enter Yes or No: ').upper()
+            while not(answer_update_error_consumption[0].upper() == 'Y' or answer_update_error_consumption[0].upper() == 'N'):
+                answer_update_error_consumption = input('Enter Yes or No: ').upper()
 
-        if answear_update_error_consumption[0].upper() == 'Y':
-            raise RuntimeError('It was not possible to update Consumption Database')
+            if answer_update_error_consumption[0].upper() == 'Y':
+                raise RuntimeError('It was not possible to update Consumption Database')
 
-    try_update_db_stocks = update_db.update_db_stocks(db_path)
+        try_update_db_stocks = update_db.update_db_stocks(db_path)
 
-    if try_update_db_stocks == False:
-        print('It was not possible to update Stocks Price Database')
-        answear_update_error_stocks = input('Do you want to terminate? Yes or No: ').upper()
+        # if it was not able to update stock database
+        if try_update_db_stocks == False:
+            print('It was not possible to update Stocks Price Database')
+            answer_update_error_stocks = input('Do you want to terminate? Yes or No: ').upper()
 
-        while not(answear_update_error_stocks[0].upper() == 'Y' or answear_update_error_stocks[0].upper() == 'N'):
-            answear_update_error_stocks = input('Enter Yes or No: ').upper()
+            while not(answer_update_error_stocks[0].upper() == 'Y' or answer_update_error_stocks[0].upper() == 'N'):
+                answer_update_error_stocks = input('Enter Yes or No: ').upper()
 
-        if answear_update_error_stocks[0].upper() == 'Y':
-            raise RuntimeError('It was not possible to update Stocks Price Database')
+            if answer_update_error_stocks[0].upper() == 'Y':
+                raise RuntimeError('It was not possible to update Stocks Price Database')
+    else:
+        pass
 
-print('Calculating...\n')
 
+# querying all the available tickers
 all_tickers = query_db.get_all_available_stock_table(db_path)
 
-consumption_df = query_db.query_household_consumption_index(db_path)
-
-stocks_prices_df = query_db.query_stock_prices(db_path, all_tickers, price, filter_zero_volume)
-
-consumption_returns_df = calculate_returns.calculate_consumption_return(consumption_df)
-
-stocks_returns_df = calculate_returns.calculate_stock_returns_df(stocks_prices_df)
-
-regression_dict, regression_residues_df = calculate_regression.calculate_linear_regression(stocks_returns_df, consumption_returns_df)
-
-regression_df = calculate_regression.generate_regression_dataframe(regression_dict)
-
-
+# printing the instructions
 print("""
-    Welcome to CCAPM Regression \n
-    It will be printed every available ticker that is possible to be estimate.\n
-    Choose one or more to retrieve the Ordinary Least Square estimation of the model.\n
-    Chose all the tickers you want and to stop write done\n.
-    If you want all of the listed, write all availables \n
-    
+    It will be printed every available ticker that is available in the Database.\n
+    Choose one or more to compute the Ordinary Least Square estimation of the model.\n
+    To stop selecting, just write: done\n
+    If you want all of the listed, write: all stocks \n   
 """)
 
-print(all_tickers)
+# printing all the available ticker
+all_tickers.sort()
+
+print('%s' % ', '.join(map(str, all_tickers)))
+
 print()
 
-lst_answers = []
+answers_lst = []
 
-answear = input("Write the name of the ticker: ")
 
-if answear[0].lower() == 'd':
+# selection the tickers
+answer = input("Write the name of the ticker: ")
+
+if answer.lower() == 'done':
+    print()
     print()
     print("Program will be finalized")
     print()
+    print()
     exit()
 
-if answear == 'all availables':
-    queried_regression_df = regression_df
-    queried_residuals_df = regression_residues_df
+while answer.lower() != 'done':
+    if answer == 'all stocks':
+        answers_lst = all_tickers
+        break
 
-else:
+    if answer not in all_tickers:
+        print()
+        print(answer, ' is not a valid ticker, enter only the ones showed above\n')
+        answer = input("Write the name of a valid ticker or write done to finish selection: ")
+        continue
 
-    while answear[0].lower() != 'd':
-        if answear == 'all availables':
-            queried_regression_df = regression_df
-            queried_residuals_df = regression_residues_df
-            break
+    if answer in answers_lst:
+        answer = input("You have already selected this one.\n"
+                        "Write another ticker or write done to finish selection: ")
+        continue
 
-        if answear not in all_tickers:
-            print()
-            print(answear, ' is not a valid ticker, enter only the ones showed above\n')
-            answear = input("Write the name of the ticker: ")
-            continue
-
-        if len(lst_answers) != 0: # not working!!
-            if answear in lst_answers:
-                continue
-
-        lst_answers.append(answear)
-        answear = input("Write the name of the ticker: ")
-
-    if answear == 'all availables':
-        queried_regression_df = regression_df
-        queried_residuals_df = regression_residues_df
-
-    else:
-        queried_regression_df = regression_df.loc[lst_answers,:]
-        queried_residuals_df = regression_residues_df.loc[:,lst_answers]
+    answers_lst.append(answer)
+    answer = input("Write the name of the ticker: ")
 
 
+print('\nCalculating...\n')
+
+pdb.set_trace()
+
+# querying consumption
+consumption_df = query_db.query_household_consumption_index(db_path)
+
+#querying stock prices
+stocks_prices_df = query_db.query_stock_prices(db_path, answers_lst, price, filter_zero_volume)
+
+# calculating consumption returns
+consumption_returns_df = calculate_returns.calculate_consumption_return(consumption_df)
+
+
+# calculating stock returns
+stocks_returns_df = calculate_returns.calculate_stock_returns_df(stocks_prices_df)
+
+# calculating the regressions and extracting the residues
+regression_dict, regression_residues_df = calculate_regression.calculate_linear_regression(stocks_returns_df,
+                                                                                           consumption_returns_df)
+
+# extracting the regression dataframe
+regression_df = calculate_regression.generate_regression_dataframe(regression_dict)
+
+
+# configuring the pandas display to show the entire dataframe
 pd.options.display.max_rows = 999
 pd.options.display.max_columns = 20
 
+
+print("""
+    It will be printed below a pandas DataFrame which contains the following information:\n
+    - parameters coefficients, standard deviation and p values,\n
+    - r squared and adjusted r squared\n
+    - f statistic and its p value\n
+    - durbin watson test\n    
+""")
+
+print(regression_df)
 print()
-print(queried_regression_df)
-print()
 
 
-answear_export = input('Do you want to export into a .csv? Yes or No ').upper()
+# checking if want to export as .csv
+answer_export = input('\nDo you want to export into a .csv? Yes or No: ').upper()
 
-while not(answear_export[0].upper() == 'Y' or answear_export[0].upper() == 'N'):
-    answear_update_error_consumption = input('Enter Yes or No ').upper()
+while not(answer_export[0].upper() == 'Y' or answer_export[0].upper() == 'N'):
+    answer_export = input('Enter Yes or No ').upper()
 
-if answear_export[0].upper() == 'Y':
+if answer_export[0].upper() == 'Y':
     answer_export_name = input("Enter the name to the file be saved with: ")
     if answer_export_name[-4:] != '.csv':
         answer_export_name_residuals = answer_export_name + '_residuals.csv'
@@ -147,30 +213,15 @@ if answear_export[0].upper() == 'Y':
     else:
         answer_export_name_residuals = answer_export_name[:-4] + '_residuals.csv'
 
+    answer_export_col_separator = input("Enter the .csv column separator, ; or , : ")
+    while not (answer_export_col_separator == ';' or answer_export_col_separator == ','):
+        answer_export_col_separator = input('Enter ; or ,: ')
 
-    answear_export_col_separator = input("Enter the column separator, ; or , : ")
-    while not (answear_export_col_separator == ';' or answear_export_col_separator == ','):
-        answear_export_col_separator = input('Enter ; or ,: ')
-
-    queried_regression_df.to_csv(answer_export_name, sep=answear_export_col_separator)
-    queried_residuals_df.to_csv(answer_export_name_residuals, sep=answear_export_col_separator)
+    regression_df.to_csv(answer_export_name, sep=answer_export_col_separator)
+    regression_residues_df.to_csv(answer_export_name_residuals, sep=answer_export_col_separator)
 
     print()
-    print('Exported queried regression(s) and residuals with success\n')
+    print('\nExported queried regression(s) and residuals with success\n')
 
-print("Program will be finalized")
-
-
-
-
-
-
-
-
-
-
-
-
-
-
+print("\nThe program will be finalized!\n")
 

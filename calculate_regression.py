@@ -62,10 +62,10 @@ def generate_regression_dataframe(reg_dict):
 
     """
     From the dictionary which contains the regressions, it will extract the regressions:
-     - parameters coefficients, standard deviation and p values,
+    - parameters coefficients, standard deviation and p values,
     - r squared and adjusted r squared
     - f statistic and its p value
-    - durbin watson
+    - durbin watson test
 
     It will store in a pandas Dataframe, where each one of the information above will be assignt to one column and each
     row will be a ticker.
