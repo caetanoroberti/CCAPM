@@ -50,7 +50,7 @@ expected_stock_df_returns_abev3 = [0.152336182163651, 0.228591792421808, 0.30493
                                   0.37129451342177, 0.233615541930205, 0.0248981485967356, 1.73216573530158]
 
 
-class TestQuery(unittest.TestCase):
+class TestCalculateReturns(unittest.TestCase):
 
     def test_calculate_consumption_return(self):
 
