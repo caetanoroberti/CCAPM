@@ -33,7 +33,6 @@ def calculate_linear_regression(stock_return_df, consumption_return_df):
         stock_return_df = pd.DataFrame(stock_return_df)
 
     cols_retorno_stocks = stock_return_df.columns
-    #stock_return_df = pd.merge(stock_return_df,consumption_return_df,left_index=True,right_index=True,how='outer')
     stock_return_df = pd.concat([stock_return_df, consumption_return_df], axis=1,sort=True).reindex(stock_return_df.index)
     stock_return_df['Constant'] = 1
     reg_dict = {}
